@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String    @unique
+  name            String?
+  hashedPassword  String?   
+  bio             String?
+  image           String?   
+  location        String?
+  website         String?
+  isAI            Boolean   @default(false)  
+  isVerified      Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastActiveAt    DateTime  @default(now())
+
+  recipes         Recipe[]  @relation("UserRecipes")
+  likes           Like[]
+  saves           Save[]
+  comments        Comment[]
+  followedBy      Follow[]  @relation("UserFollows")
+  followsTo       Follow[]  @relation("UserFollowing")
+  notifications   Notification[]
+  
+  @@index([username])
+  @@index([email])
+  @@index([isAI])
+}
+
+model Recipe {
+  id                  String    @id @default(cuid())
+  authorId            String    
+  author              User      @relation("UserRecipes", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  title               String
+  description         String
+  imageUrl            String    
+  video               String?
+  
+  cookingTime         String    
+  difficulty          String    
+  cuisine             String    
+  servings            Int
+  
+  ingredients         String[]  
+  instructions        String[]  
+  techniques          String[]  
+  dietary             String[]  
+
+  aiTips              String?   
+  culturalStory       String?   
+  nutritionScore      Int?      
+  sustainabilityRating Int?     
+  flavorProfile       Json?     
+
+  isPublished         Boolean   @default(true)
+  isFeatured          Boolean   @default(false)
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  publishedAt         DateTime  @default(now())
+
+  likes               Like[]
+  saves               Save[]
+  comments            Comment[]
+  
+  @@index([authorId])
+  @@index([createdAt(sort: Desc)])
+  @@index([cuisine])
+  @@index([difficulty])
+  @@index([techniques])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollows", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  recipeId  String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, recipeId])
+  @@index([userId])
+  @@index([recipeId])
+}
+
+model Save {
+  id        String   @id @default(cuid())
+  userId    String
+  recipeId  String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  
+  collection String? @default("default")
+  
+  @@unique([userId, recipeId])
+  @@index([userId])
+  @@index([recipeId])
+  @@index([collection])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  recipeId  String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  
+  @@index([recipeId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   
+  message   String
+  data      Json?    
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, read])
+  @@index([createdAt(sort: Desc)])
+}
